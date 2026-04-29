@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Estadio</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       display: flex;
@@ -32,110 +28,143 @@
 
     .stadium-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
     }
 
-    .seat-ring {
-      fill: rgba(255, 215, 0, 0.50);
-      stroke: rgba(200, 160, 0, 0.80);
-      stroke-width: 2;
+    .seat-section {
+      fill: rgba(255, 215, 0, 0.10);
+      stroke: rgba(180, 140, 0, 0.50);
+      stroke-width: 1.5;
       cursor: pointer;
-      transition: fill 0.25s ease, stroke 0.25s ease;
+      transition: fill 0.2s ease, stroke 0.2s ease;
     }
 
-    .seat-ring:hover {
-      fill: rgba(255, 215, 0, 0.80);
-      stroke: rgba(220, 170, 0, 1);
+    .seat-section:hover {
+      fill: rgba(255, 230, 0, 0.55);
+      stroke: rgba(180, 140, 0, 0.85);
     }
 
-    /* Tooltip rendered as SVG foreignObject for crisp positioning */
-    .tooltip-box {
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .tooltip-box.visible {
-      opacity: 1;
-    }
-
-    .tooltip-rect {
-      fill: rgba(10, 10, 10, 0.82);
-      rx: 6;
-    }
-
-    .tooltip-text {
+    .section-label {
       font-family: Arial, sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      fill: #ffffff;
+      font-size: 20px;
+      font-weight: 700;
+      fill: rgba(90, 70, 0, 0.75);
       text-anchor: middle;
       dominant-baseline: middle;
+      pointer-events: none;
     }
 
-    .tooltip-arrow {
-      fill: rgba(10, 10, 10, 0.82);
+    .tooltip {
+      position: fixed;
+      background: rgba(10, 10, 10, 0.85);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      white-space: nowrap;
+      line-height: 1.6;
     }
+
+    .tooltip.visible { display: block; }
+    .tooltip-name { color: #ffd700; font-weight: 700; }
   </style>
 </head>
 <body>
 
   <div class="stadium-container">
-    <img src="assets/WhatsApp Image 2026-04-29 at 13.44.08.jpeg" alt="Plano del Estadio">
+    <img src="assets/esatdio_pb.jpeg" alt="Plano del Estadio">
 
-    <!--
-      SVG overlay uses a viewBox matching the image's natural aspect ratio (1200×675).
-      The stadium field center sits at approximately cx=600, cy=368.
-    -->
-    <svg
-      class="stadium-overlay"
-      viewBox="0 0 1200 675"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <!--
-        Elliptical annulus matching the innermost seating tier.
-        Center: (600, 368)  — field center measured from blueprint
-        Outer ellipse: rx=265, ry=210  (outer edge of seating band)
-        Inner ellipse: rx=196, ry=155  (field/track boundary)
-      -->
-      <path
-        class="seat-ring"
-        id="innerCircle"
-        fill-rule="evenodd"
-        d="M 335,368 A 265,210 0 1,0 865,368 A 265,210 0 1,0 335,368 Z
-           M 404,368 A 196,155 0 1,0 796,368 A 196,155 0 1,0 404,368 Z"
-      />
-
-      <!-- Tooltip above the ring's top edge (y = 368 - 210 = 158) -->
-      <g class="tooltip-box" id="tooltip">
-        <polygon
-          class="tooltip-arrow"
-          points="600,152 590,136 610,136"
-        />
-        <rect
-          class="tooltip-rect"
-          x="488" y="98"
-          width="224" height="38"
-          rx="6"
-        />
-        <text class="tooltip-text" x="600" y="117">Zona Preferente</text>
-      </g>
+    <svg class="stadium-overlay" viewBox="0 0 1280 720"
+         xmlns="http://www.w3.org/2000/svg" id="svgOverlay">
     </svg>
   </div>
 
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-name" id="tooltip-name"></div>
+    <div id="tooltip-seats"></div>
+  </div>
+
   <script>
-    const circle = document.getElementById('innerCircle');
+    const CX = 640, CY = 380;
+    const ORX = 295, ORY = 230;  // outer ellipse radii
+    const IRX = 200, IRY = 155;  // inner ellipse radii
+
+    // 8 sections, one per compass direction (angles in SVG coords: 0°=right, 90°=down)
+    const SECTIONS = [
+      { id: 's-north',  label: 'N',  name: 'Norte',     seats: 3800, center: 270 },
+      { id: 's-ne',     label: 'NE', name: 'Noreste',   seats: 3000, center: 315 },
+      { id: 's-east',   label: 'E',  name: 'Este',      seats: 3200, center: 0   },
+      { id: 's-se',     label: 'SE', name: 'Sureste',   seats: 3000, center: 45  },
+      { id: 's-south',  label: 'S',  name: 'Sur',       seats: 3800, center: 90  },
+      { id: 's-sw',     label: 'SO', name: 'Suroeste',  seats: 3000, center: 135 },
+      { id: 's-west',   label: 'O',  name: 'Oeste',     seats: 3200, center: 180 },
+      { id: 's-nw',     label: 'NO', name: 'Noroeste',  seats: 3000, center: 225 },
+    ];
+
+    const HALF_SPAN = 20.5; // degrees; 45° slot minus 4° gap = 41° per section
+
+    function pt(rx, ry, deg) {
+      const r = deg * Math.PI / 180;
+      return [CX + rx * Math.cos(r), CY + ry * Math.sin(r)];
+    }
+
+    function buildPath(centerDeg) {
+      const a1 = centerDeg - HALF_SPAN;
+      const a2 = centerDeg + HALF_SPAN;
+      const [ox1, oy1] = pt(ORX, ORY, a1);
+      const [ox2, oy2] = pt(ORX, ORY, a2);
+      const [ix1, iy1] = pt(IRX, IRY, a1);
+      const [ix2, iy2] = pt(IRX, IRY, a2);
+      const f = n => n.toFixed(2);
+      // Outer arc clockwise (sweep=1), inner arc counter-clockwise (sweep=0)
+      return `M${f(ox1)},${f(oy1)} A${ORX},${ORY} 0 0,1 ${f(ox2)},${f(oy2)} ` +
+             `L${f(ix2)},${f(iy2)} A${IRX},${IRY} 0 0,0 ${f(ix1)},${f(iy1)} Z`;
+    }
+
+    function labelPos(centerDeg) {
+      return pt((ORX + IRX) / 2, (ORY + IRY) / 2, centerDeg);
+    }
+
+    const svg     = document.getElementById('svgOverlay');
     const tooltip = document.getElementById('tooltip');
+    const ttName  = document.getElementById('tooltip-name');
+    const ttSeats = document.getElementById('tooltip-seats');
 
-    circle.addEventListener('mouseenter', () => {
-      tooltip.classList.add('visible');
-    });
+    SECTIONS.forEach(sec => {
+      // Section path
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('class', 'seat-section');
+      path.setAttribute('id', sec.id);
+      path.setAttribute('d', buildPath(sec.center));
+      svg.appendChild(path);
 
-    circle.addEventListener('mouseleave', () => {
-      tooltip.classList.remove('visible');
+      // Section label
+      const [lx, ly] = labelPos(sec.center);
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('class', 'section-label');
+      text.setAttribute('x', lx.toFixed(2));
+      text.setAttribute('y', ly.toFixed(2));
+      text.textContent = sec.label;
+      svg.appendChild(text);
+
+      // Hover events
+      path.addEventListener('mouseenter', () => {
+        ttName.textContent  = sec.name;
+        ttSeats.textContent = sec.seats.toLocaleString() + ' asientos';
+        tooltip.classList.add('visible');
+      });
+      path.addEventListener('mousemove', e => {
+        tooltip.style.left = (e.clientX + 16) + 'px';
+        tooltip.style.top  = (e.clientY - 48) + 'px';
+      });
+      path.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('visible');
+      });
     });
   </script>
 
