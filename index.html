@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadio</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #f0f0f0;
+    }
+
+    .stadium-container {
+      position: relative;
+      display: inline-block;
+      max-width: 90vw;
+    }
+
+    .stadium-container img {
+      display: block;
+      width: 100%;
+    }
+
+    .stadium-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .seat-ring {
+      fill: rgba(255, 215, 0, 0.50);
+      stroke: rgba(200, 160, 0, 0.80);
+      stroke-width: 2;
+      cursor: pointer;
+      transition: fill 0.25s ease, stroke 0.25s ease;
+    }
+
+    .seat-ring:hover {
+      fill: rgba(255, 215, 0, 0.80);
+      stroke: rgba(220, 170, 0, 1);
+    }
+
+    /* Tooltip rendered as SVG foreignObject for crisp positioning */
+    .tooltip-box {
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .tooltip-box.visible {
+      opacity: 1;
+    }
+
+    .tooltip-rect {
+      fill: rgba(10, 10, 10, 0.82);
+      rx: 6;
+    }
+
+    .tooltip-text {
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      fill: #ffffff;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .tooltip-arrow {
+      fill: rgba(10, 10, 10, 0.82);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stadium-container">
+    <img src="assets/WhatsApp Image 2026-04-29 at 13.44.08.jpeg" alt="Plano del Estadio">
+
+    <!--
+      SVG overlay uses a viewBox matching the image's natural aspect ratio (1200×675).
+      The stadium field center sits at approximately cx=600, cy=368.
+    -->
+    <svg
+      class="stadium-overlay"
+      viewBox="0 0 1200 675"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <!--
+        Elliptical annulus matching the innermost seating tier.
+        Center: (600, 368)  — field center measured from blueprint
+        Outer ellipse: rx=265, ry=210  (outer edge of seating band)
+        Inner ellipse: rx=196, ry=155  (field/track boundary)
+      -->
+      <path
+        class="seat-ring"
+        id="innerCircle"
+        fill-rule="evenodd"
+        d="M 335,368 A 265,210 0 1,0 865,368 A 265,210 0 1,0 335,368 Z
+           M 404,368 A 196,155 0 1,0 796,368 A 196,155 0 1,0 404,368 Z"
+      />
+
+      <!-- Tooltip above the ring's top edge (y = 368 - 210 = 158) -->
+      <g class="tooltip-box" id="tooltip">
+        <polygon
+          class="tooltip-arrow"
+          points="600,152 590,136 610,136"
+        />
+        <rect
+          class="tooltip-rect"
+          x="488" y="98"
+          width="224" height="38"
+          rx="6"
+        />
+        <text class="tooltip-text" x="600" y="117">Zona Preferente</text>
+      </g>
+    </svg>
+  </div>
+
+  <script>
+    const circle = document.getElementById('innerCircle');
+    const tooltip = document.getElementById('tooltip');
+
+    circle.addEventListener('mouseenter', () => {
+      tooltip.classList.add('visible');
+    });
+
+    circle.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  </script>
+
+</body>
+</html>
